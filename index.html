@@ -1,13 +1,698 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Scene Studio — 保險業圖片生成器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--s1:#111113;--s2:#18181b;--border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);--accent:#10b981;--accent-dim:rgba(16,185,129,0.1);
+  --accent-border:rgba(16,185,129,0.35);--text:#e4e4e7;--muted:#71717a;--red:#ef4444;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;font-weight:300;min-height:100vh}
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-name{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.05em}
+.api-area{display:flex;align-items:center;gap:8px}
+.api-input{background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);width:280px;outline:none;transition:border-color .2s}
+.api-input:focus{border-color:var(--accent-border)}
+.api-input::placeholder{color:var(--muted)}
+.api-status{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--muted);white-space:nowrap}
+.api-status.ok{color:var(--accent);border-color:var(--accent-border);background:var(--accent-dim)}
+/* QUICK THEMES */
+.themes-wrap{padding:20px 24px;border-bottom:1px solid var(--border)}
+.themes-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.themes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.theme-btn{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;transition:all .18s;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px}
+.theme-btn:hover{border-color:var(--accent-border);background:var(--accent-dim)}
+.theme-btn.uploading{border-color:var(--accent-border);background:var(--accent-dim)}
+.theme-icon{font-size:22px}
+.theme-name{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+/* MAIN LAYOUT */
+.app{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 56px)}
+/* LEFT PANEL */
+.left{overflow-y:auto;border-right:1px solid var(--border);scrollbar-width:thin;scrollbar-color:#333 transparent}
+.left::-webkit-scrollbar{width:4px}
+.left::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+.section-block{padding:20px;border-bottom:1px solid var(--border)}
+.block-title{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-full{grid-column:1/-1}
+.field label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+select,input[type=text],textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--text);font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2371717a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-color:rgba(255,255,255,0.04);padding-right:28px;cursor:pointer}
+select:focus,input[type=text]:focus,textarea:focus{border-color:var(--accent-border);background:var(--accent-dim)}
+select option{background:#1c1c1f;color:var(--text)}
+textarea{resize:none;min-height:60px}
+input[type=range]{padding:0;height:4px;border:none;background:var(--s2);border-radius:2px;cursor:pointer;accent-color:var(--accent)}
+/* ASPECT RATIO */
+.ar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ar-btn{padding:8px 4px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,0.03);font-size:9px;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;gap:2px;font-family:'JetBrains Mono',monospace}
+.ar-btn.active{border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
+.ar-btn:hover{border-color:rgba(16,185,129,0.3);color:var(--text)}
+/* TEXT OVERLAYS */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;background:var(--s2);border:1px solid var(--border2);border-radius:10px;transition:all .2s}
+.toggle input:checked+.toggle-track{background:var(--accent);border-color:var(--accent)}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:12px;height:12px;background:var(--muted);border-radius:50%;transition:all .2s}
+.toggle input:checked~.toggle-thumb{transform:translateX(16px);background:#000}
+/* PERSON TABS */
+.person-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ptab{padding:5px 12px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;border:1px solid var(--border);background:var(--s2);color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.ptab.active{border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
+.ptab .del{font-size:12px;opacity:.5}
+.ptab .del:hover{opacity:1;color:var(--red)}
+.add-person{padding:5px 10px;border-radius:6px;font-size:14px;border:1px dashed var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.add-person:hover{border-color:var(--accent-border);color:var(--accent)}
+.gender-btns{display:flex;gap:6px}
+.gbtn{flex:1;padding:7px;border-radius:7px;border:1px solid var(--border2);background:rgba(255,255,255,0.03);font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.gbtn.active{border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
+.age-row{display:flex;align-items:center;gap:8px}
+.age-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);min-width:28px;text-align:right}
+/* GENERATE */
+.gen-wrap{padding:20px;border-top:1px solid var(--border)}
+.gen-btn{width:100%;padding:14px;border-radius:12px;background:var(--accent);color:#000;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:none;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.gen-btn:hover{background:#34d399;transform:translateY(-1px);box-shadow:0 8px 24px rgba(16,185,129,.25)}
+.gen-btn:active{transform:translateY(0)}
+.gen-btn:disabled{background:var(--s2);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{margin-top:10px;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:11px;color:#fca5a5;display:none}
+.error-msg.visible{display:block}
+.debug-box{margin-top:10px;padding:12px;background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;font-family:monospace;font-size:10px;color:#60a5fa;line-height:1.6;max-height:100px;overflow-y:auto;word-break:break-all;display:none}
+/* RIGHT PANEL */
+.right{display:flex;flex-direction:column;background:#0d0d0f;overflow:hidden}
+.preview-area{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;position:relative}
+.preview-frame{background:var(--s2);border:1px solid var(--border2);border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.preview-empty{text-align:center;color:var(--muted)}
+.preview-empty-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.preview-empty p{font-size:13px}
+.preview-empty small{font-size:11px;opacity:.6;display:block;margin-top:6px}
+.preview-img{width:100%;height:100%;object-fit:cover;display:none}
+.preview-img.visible{display:block}
+.gen-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:10;border-radius:16px}
+.gen-overlay.visible{display:flex}
+.gen-spinner{width:56px;height:56px;border:3px solid rgba(16,185,129,.15);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+.gen-overlay-text{text-align:center}
+.gen-overlay-text p{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+.gen-overlay-text small{font-size:11px;color:var(--muted);display:block;margin-top:6px}
+.dl-btn{position:absolute;bottom:16px;right:16px;padding:10px 18px;background:#fff;color:#000;border:none;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:6px;transition:all .2s;z-index:5}
+.dl-btn:hover{background:var(--accent)}
+.dl-btn.visible{display:flex}
+/* TEXT OVERLAYS */
+.text-overlay{position:absolute;cursor:move;user-select:none;z-index:8}
+.overlay-pill{padding:6px 14px;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border:1px solid var(--accent-border);border-radius:6px;white-space:nowrap;font-weight:700;color:#fff;font-size:18px}
+.overlay-pill.subtitle{font-size:13px;font-weight:400;color:#d4d4d8;border-color:rgba(16,185,129,.2)}
+.overlay-pill.body{font-size:11px;font-weight:300;color:#a1a1aa;border-color:rgba(16,185,129,.12);max-width:200px;white-space:pre-wrap;cursor:move}
+/* BOTTOM BAR */
+.bottom-bar{border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:24px;background:var(--s1);flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.stat-val{font-size:12px;font-weight:500}
+/* FILE UPLOAD */
+.upload-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:7px;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s}
+.upload-btn:hover{border-color:var(--accent-border);color:var(--accent)}
+.ref-preview{width:100%;aspect-ratio:16/9;border-radius:7px;overflow:hidden;border:1px solid var(--accent-border);margin-top:6px}
+.ref-preview img{width:100%;height:100%;object-fit:cover}
+@media(max-width:800px){.app{grid-template-columns:1fr}.right{min-height:50vw}.api-input{width:180px}}
+</style>
+</head>
+<body>
 
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <span class="logo-name">AI Scene Studio</span>
+  </div>
+  <div class="api-area">
+    <input class="api-input" type="password" id="apiKey" placeholder="輸入 Gemini API Key (AIza...)" oninput="checkKey()">
+    <span class="api-status" id="apiStatus">未設定</span>
+  </div>
+</header>
+
+<!-- QUICK THEMES -->
+<div class="themes-wrap">
+  <div class="themes-label">✦ 保險業快速主題</div>
+  <div class="themes-grid" id="themesGrid"></div>
+</div>
+
+<div class="app">
+  <!-- LEFT -->
+  <div class="left">
+
+    <!-- Scene Settings -->
+    <div class="section-block">
+      <div class="block-title">⚙ 場景設定</div>
+      <div class="field-grid">
+        <div class="field"><label>族裔</label><select id="ethnicity"></select></div>
+        <div class="field"><label>場景</label><select id="scene" onchange="handleCustomSelect('scene','customScene',this)"></select></div>
+        <div class="field field-full" id="customSceneWrap" style="display:none"><input type="text" id="customScene" placeholder="自定義場景..."></div>
+        <div class="field"><label>風格</label><select id="style" onchange="handleCustomSelect('style','customStyle',this)"></select></div>
+        <div class="field"><label>天氣</label><select id="weather"></select></div>
+        <div class="field field-full" id="customStyleWrap" style="display:none">
+          <input type="text" id="customStyle" placeholder="自定義風格描述...">
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <label class="upload-btn" onclick="triggerUpload('styleImageInput')">📎 上傳風格參考圖</label>
+            <input type="file" id="styleImageInput" accept="image/*" style="display:none" onchange="handleStyleImg(this)">
+          </div>
+          <div id="styleImgPreview" style="display:none" class="ref-preview"><img id="styleImgThumb"></div>
+        </div>
+        <div class="field"><label>燈光</label><select id="lighting"></select></div>
+        <div class="field"><label>時間</label><select id="timeOfDay"></select></div>
+        <div class="field field-full">
+          <label>鏡頭角度</label>
+          <select id="cameraAngle" onchange="handleCustomSelect('cameraAngle','customCameraAngle',this)"></select>
+        </div>
+        <div class="field field-full" id="customCameraAngleWrap" style="display:none">
+          <input type="text" id="customCameraAngle" placeholder="自定義鏡頭角度...">
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <label class="upload-btn" onclick="triggerUpload('camImgInput')">📎 上傳鏡頭參考圖</label>
+            <input type="file" id="camImgInput" accept="image/*" style="display:none" onchange="handleCamImg(this)">
+          </div>
+          <div id="camImgPreview" style="display:none" class="ref-preview"><img id="camImgThumb"></div>
+        </div>
+      </div>
+
+      <!-- Aspect Ratio -->
+      <div style="margin-top:16px">
+        <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">圖片比例</label>
+        <div class="ar-grid" id="arGrid"></div>
+      </div>
+    </div>
+
+    <!-- Text Overlays -->
+    <div class="section-block">
+      <div class="block-title">T 文字疊加</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div class="toggle-row">
+            <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">主標題</label>
+            <label class="toggle"><input type="checkbox" id="showMain" onchange="toggleTextInput('mainTitleWrap',this);renderOverlays()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div id="mainTitleWrap" style="display:none"><input type="text" id="mainTitle" placeholder="e.g. 守護家人 守護愛" oninput="renderOverlays()"></div>
+        </div>
+        <div>
+          <div class="toggle-row">
+            <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">次標題</label>
+            <label class="toggle"><input type="checkbox" id="showSub" onchange="toggleTextInput('subTitleWrap',this);renderOverlays()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div id="subTitleWrap" style="display:none"><input type="text" id="subTitle" placeholder="e.g. 全方位保障方案" oninput="renderOverlays()"></div>
+        </div>
+        <div>
+          <div class="toggle-row">
+            <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">內文</label>
+            <label class="toggle"><input type="checkbox" id="showBody" onchange="toggleTextInput('bodyTextWrap',this);renderOverlays()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div id="bodyTextWrap" style="display:none"><textarea id="bodyText" placeholder="補充說明..." oninput="renderOverlays()"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reference Upload -->
+    <div class="section-block">
+      <div class="block-title">📎 依圖模擬</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px">上傳參考圖，AI 自動分析場景設定</p>
+      <label class="upload-btn" style="display:flex" onclick="triggerUpload('refImgInput')">
+        <span id="refBtnText">📤 上傳參考圖片</span>
+      </label>
+      <input type="file" id="refImgInput" accept="image/*" style="display:none" onchange="handleRefImg(this)">
+    </div>
+
+    <!-- People -->
+    <div class="section-block">
+      <div class="block-title">👤 人物設定</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="personTabsRow"></div>
+      <div id="personFields"></div>
+    </div>
+
+    <!-- Generate -->
+    <div class="gen-wrap">
+      <button class="gen-btn" id="genBtn" onclick="generate()">
+        <span id="genIcon">✦</span><span id="genText"> 生成圖片</span>
+      </button>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="debug-box" id="debugBox"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="preview-area">
+      <div class="preview-frame" id="previewFrame" style="width:100%;aspect-ratio:16/9;max-height:70vh">
+        <div class="preview-empty" id="emptyState">
+          <div class="preview-empty-icon">🖼</div>
+          <p>選擇主題或設定參數後點擊生成</p>
+          <small>由 Gemini 3.1 Flash Image 驅動</small>
+        </div>
+        <img class="preview-img" id="previewImg" alt="Generated">
+        <div id="overlayContainer" style="position:absolute;inset:0;pointer-events:none"></div>
+        <div class="gen-overlay" id="genOverlay">
+          <div class="gen-spinner"></div>
+          <div class="gen-overlay-text">
+            <p>AI 正在生成場景</p>
+            <small>合成多人物場景中，請稍候...</small>
+          </div>
+        </div>
+        <button class="dl-btn" id="dlBtn" onclick="downloadImg()">↓ 下載</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="stat"><div class="stat-label">場景</div><div class="stat-val" id="s-scene">—</div></div>
+      <div class="stat"><div class="stat-label">人物</div><div class="stat-val" id="s-people">—</div></div>
+      <div class="stat"><div class="stat-label">風格</div><div class="stat-val" id="s-style">—</div></div>
+      <div class="stat"><div class="stat-label">比例</div><div class="stat-val" id="s-ratio">—</div></div>
+      <div class="stat"><div class="stat-label">天氣</div><div class="stat-val" id="s-weather">—</div></div>
+      <div class="stat"><div class="stat-label">時間</div><div class="stat-val" id="s-time">—</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────
+const ETHNICITIES = ['Taiwanese (台灣人)','East Asian','Caucasian','African','Hispanic','South Asian','Middle Eastern'];
+const SCENES = ['Natural Park (自然公園)','Qingtiangang Grassland (擎天崗草原)','Park (公園)','Amusement Park (遊樂場)','Room (房間)','Rehabilitation Center (復健中心)','City Street (城市街道)','Cafe (咖啡廳)','Seaside (海邊)','Beach (沙灘)','Company (公司)','Living Room (客廳)','Hospital (醫院)','Mountain Climbing (登山)','Yacht (遊艇), Swimming Pool (泳池)','Riverside (溪邊)','Hill (小山)','Trail (步道)','Blue Screen (藍幕 - 方便去背)','Custom (自定義)'];
+const ACTIONS = ['Flying a kite (放風箏)','Holding a balloon (拿氣球)','Throwing a ball (投球)','Gymnastics (體操)','Eating ice cream (吃冰淇淋)','Eating (吃飯)','Watching a tablet (看平板)','Muscle training (肌肉訓練)','Squats (深蹲)','Walking (健走)','Walking (走路)','Running (跑步)','Jogging (慢跑)','Hiking (健行)','Swimming (游泳)','Fishing (釣魚)','Cycling (騎腳踏車)','Yoga (瑜伽)','Dancing (跳舞)','Picnic (野餐)','Chatting (聊天)','Drinking coffee (喝咖啡)','Reading (閱讀)','Cooking (烹飪)','Gardening (園藝)','Playing Guitar (彈吉他)','Playing Piano (彈鋼琴)','Painting (繪畫)','Writing (寫作)','Meditating (冥想)','Playing with Pets (與寵物玩耍)','Taking Photos (攝影)','Shopping (購物)','Surfing (衝浪)','Skiing (滑雪)','Skating (溜冰)','Camping (露營)','Working (工作)','Resting (休息)','Sleeping (睡覺)','Diving (潛水)','Snorkeling (浮潛)','Sitting (坐著)','Standing (站著)','Stretching (伸懶腰)','Singing (唱歌)','Deep breathing (深呼吸)','Laughing (大笑)','Speaking (說話)','Teaching (教學/上課)','Hugging (擁抱)','Sick (生病/不舒服)','Sad (難過)','Custom (自定義)'];
+const IDENTITIES = ['Grandpa (爺爺)','Grandma (奶奶)','Dad (爸爸)','Mom (媽媽)','Son (兒子)','Daughter (女兒)','Professional Doctor (專業醫生)','Nurse (護士)','Patient (病人)','Insurance Agent (保險員)','AI機器人 (AI Robot)','可愛機器人 (Cute Robot)'];
+const ASSISTIVE = ['無 (None)','坐輪椅 (Wheelchair)','拿拐杖 (Crutches)','拿登山杖 (Trekking poles)','手推車 (Handcart)','嬰兒車 (Stroller)','Custom (自定義)'];
+const HAIR_COLORS = ['Black (黑)','White (白)','Grey (灰)','Partially Grey (部分白髮)','Brown','Blonde'];
+const HAIR_STYLES = ['Long Hair (長髮)','Short Hair (短髮)','Short Curly (短捲髮)','Long Curly (長捲髮)','Bald (光頭)','Balding (禿頭)','Medium Length (中長髮)','Punk (龐克)','Big Wave (大波浪)','Custom (自定義)'];
+const BODY_BUILDS = ['Slim','Athletic','Average','Muscular','Curvy','Stocky'];
+const LIGHTING = ['Soft Studio','Natural Sunlight','Golden Hour','Moody Low-key','Bright Interior'];
+const WEATHER = ['Sunny (晴天)','Cloudy (多雲)','Rainy (下雨)','Snowy (下雪)','Foggy (大霧)','Stormy (暴風雨)'];
+const CLOTHING = ['Casual Wear (休閒服)','Doctor (醫生)','Nurse (護士)','Patient (病人)','Home Wear (家居服)','Suit (西裝)','Formal Dress (禮服)','Student Uniform (學生制服)','Dress (洋裝)','Sportswear (運動服)','Professional Attire (職業裝)','Swimwear (泳裝)','Wetsuit (潛水服)','Life Vest (救生背心)','Custom (自定義)'];
+const STYLES = ['Photorealistic (照片寫實)','Cinematic (電影感)','3D PAPER CRAFT (紙模型)','Paper Cut (紙雕風)','Clay Style (紙黏土風)','Origami (摺紙風)','Felt Craft (羊毛氈)','Wood Carving (木雕)','Toy style (玩具風)','Clay Toy (黏土玩具風)','Inflatable (泡泡膠風)','Jelly (果凍風)','Chrome (金屬鉻風)','Glass (玻璃風)','Steampunk (蒸氣龐克)','Low Poly (低多邊形)','Isometric (等角視角)','Claymation','Illustration (數位插畫)','Anime / Manga (動漫)','Oil Painting (油畫風)','Abstract (抽象藝術)','Flat Design (扁平設計)','3D Render (3D渲染)','Cyberpunk (賽博龐克)','Surrealism (超現實)','Cartoon (卡通風)','仿真機器人 (Realistic Robot)','可愛卡通機器人 (Cute Cartoon Robot)','Watercolor (水彩畫)','Ink Wash (水墨畫)','Pencil Sketch (鉛筆素描)','Sticker (貼紙風)','Comic Book (美式漫畫)','Retro Vintage (復古懷舊)','Neon Glow (霓虹發光)','Pixel Art (像素藝術)','Pastel (粉彩風)','Minimalist (極簡風)','Pop Art (普普藝術)','Ukiyo-e (浮世繪)','Fantasy (奇幻插畫)','Sci-Fi (科幻)','Children Book (兒童繪本)','Film Noir (黑色電影)','HDR Photo (HDR 攝影)','Custom (自定義)'];
+const CAMERAS = ['Wide Shot (廣角)','Medium Shot (中景)','Close-up (特寫)','Extreme Close-up (極特寫)','Zoomed In (放大)','Zoomed Out (縮小)','Low Angle (低角度)','High Angle (高角度)',"Bird's Eye View (俯瞰)",'Custom (自定義)'];
+const FACING = ['正面 (Front)','背面 (Back)','右側 (Right Side)','左側 (Left Side)'];
+const TIMES = ['Early Morning (清晨)','Noon (中午)','Daytime (白天)','Evening (晚上)','Late Night (深夜)'];
+const ASPECT_RATIOS = [
+  {v:'1:1',l:'Square'},{v:'16:9',l:'Widescreen'},{v:'9:16',l:'Social Story'},
+  {v:'2:3',l:'Portrait'},{v:'3:4',l:'Traditional'},{v:'1:2',l:'Vertical'},
+  {v:'2:1',l:'Horizontal'},{v:'4:5',l:'Social Post'},{v:'3:2',l:'Standard'},{v:'4:3',l:'Classic'}
+];
+const THEMES = [
+  {id:'ref',icon:'📤',name:'依圖模擬',isRef:true},
+  {id:'young',icon:'👩‍💼',name:'小資族',cfg:{scene:'Company (公司)',lighting:'Bright Interior',style:'Photorealistic (照片寫實)',mainTitle:'小資理財 第一步',people:[{identity:'Insurance Agent (保險員)',gender:'female',age:28,action:'Working (工作)',clothing:'Professional Attire (職業裝)',hairStyle:'Medium Length (中長髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'senior',icon:'👴',name:'長者',cfg:{scene:'Park (公園)',lighting:'Natural Sunlight',style:'Photorealistic (照片寫實)',mainTitle:'樂活退休 享晚年',people:[{identity:'Grandpa (爺爺)',gender:'male',age:70,action:'Walking (走路)',clothing:'Casual Wear (休閒服)',hairStyle:'Short Hair (短髮)',hairColor:'White (白)',bodyBuild:'Average',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'},{identity:'Grandma (奶奶)',gender:'female',age:68,action:'Walking (走路)',clothing:'Casual Wear (休閒服)',hairStyle:'Short Curly (短捲髮)',hairColor:'White (白)',bodyBuild:'Average',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'family',icon:'👨‍👩‍👦',name:'家庭',cfg:{scene:'Living Room (客廳)',lighting:'Bright Interior',style:'Photorealistic (照片寫實)',mainTitle:'守護家人 守護愛',people:[{identity:'Dad (爸爸)',gender:'male',age:35,action:'Chatting (聊天)',clothing:'Casual Wear (休閒服)',hairStyle:'Short Hair (短髮)',hairColor:'Black (黑)',bodyBuild:'Athletic',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'},{identity:'Mom (媽媽)',gender:'female',age:32,action:'Chatting (聊天)',clothing:'Casual Wear (休閒服)',hairStyle:'Long Hair (長髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'},{identity:'Son (兒子)',gender:'male',age:5,action:'Eating ice cream (吃冰淇淋)',clothing:'Casual Wear (休閒服)',hairStyle:'Short Hair (短髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'child',icon:'👶',name:'兒童',cfg:{scene:'Amusement Park (遊樂場)',lighting:'Natural Sunlight',style:'Photorealistic (照片寫實)',mainTitle:'寶貝成長 零負擔',people:[{identity:'Daughter (女兒)',gender:'female',age:8,action:'Holding a balloon (拿氣球)',clothing:'Student Uniform (學生制服)',hairStyle:'Long Hair (長髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'medical',icon:'🏥',name:'醫療',cfg:{scene:'Hospital (醫院)',lighting:'Bright Interior',style:'Photorealistic (照片寫實)',mainTitle:'醫療保障 最安心',people:[{identity:'Professional Doctor (專業醫生)',gender:'male',age:45,action:'Working (工作)',clothing:'Doctor (醫生)',hairStyle:'Short Hair (短髮)',hairColor:'Black (黑)',bodyBuild:'Average',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'cancer',icon:'🎗',name:'癌症',cfg:{scene:'Rehabilitation Center (復健中心)',lighting:'Bright Interior',style:'Photorealistic (照片寫實)',mainTitle:'抗癌路上 不孤單',people:[{identity:'Patient (病人)',gender:'female',age:50,action:'Resting (休息)',clothing:'Patient (病人)',hairStyle:'Short Hair (短髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'坐輪椅 (Wheelchair)'},{identity:'Nurse (護士)',gender:'female',age:30,action:'Working (工作)',clothing:'Nurse (護士)',hairStyle:'Medium Length (中長髮)',hairColor:'Black (黑)',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'cartoon',icon:'🎨',name:'卡通少兒',cfg:{scene:'Amusement Park (遊樂場)',lighting:'Bright Interior',style:'Cartoon (卡通風)',mainTitle:'給孩子最萌的守護',people:[{identity:'Son (兒子)',gender:'male',age:8,action:'Holding a balloon (拿氣球)',clothing:'Casual Wear (休閒服)',hairStyle:'Short Hair (短髮)',hairColor:'Brown',bodyBuild:'Slim',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}},
+  {id:'robot',icon:'🤖',name:'AI客服',cfg:{scene:'Company (公司)',lighting:'Bright Interior',style:'可愛卡通機器人 (Cute Cartoon Robot)',mainTitle:'AI智慧服務 隨時都在',people:[{identity:'可愛機器人 (Cute Robot)',gender:'male',age:3,action:'Standing (站著)',clothing:'Formal Dress (禮服)',hairStyle:'Bald (光頭)',hairColor:'White (白)',bodyBuild:'Stocky',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)',customPrompt:'chubby, friendly robot with expressive eyes'},{identity:'Insurance Agent (保險員)',gender:'female',age:30,action:'Chatting (聊天)',clothing:'Professional Attire (職業裝)',hairStyle:'Medium Length (中長髮)',hairColor:'Black (黑)',bodyBuild:'Average',facingAngle:'正面 (Front)',assistiveDevice:'無 (None)'}]}}
+];
+
+// ─── STATE ────────────────────────────────────────────────────
+const state = {
+  ethnicity:'Taiwanese (台灣人)', scene:'Natural Park (自然公園)',
+  style:'Photorealistic (照片寫實)', weather:'Sunny (晴天)',
+  lighting:'Natural Sunlight', timeOfDay:'Daytime (白天)',
+  cameraAngle:'Medium Shot (中景)', aspectRatio:'16:9',
+  styleImage:null, cameraAngleImage:null,
+  people:[defPerson()], activeIdx:0,
+  overlayPos:{main:{x:50,y:18},sub:{x:50,y:30},body:{x:50,y:80}},
+  generatedImage:null, generating:false
+};
+
+function defPerson(){
+  return {identity:'Insurance Agent (保險員)',gender:'female',age:35,
+    action:'Working (工作)',clothing:'Professional Attire (職業裝)',
+    bodyBuild:'Average',hairStyle:'Medium Length (中長髮)',
+    hairColor:'Black (黑)',facingAngle:'正面 (Front)',
+    assistiveDevice:'無 (None)',customPrompt:''};
+}
+
+// ─── INIT ──────────────────────────────────────────────────────
+function init(){
+  // Populate selects
+  pop('ethnicity',ETHNICITIES); pop('scene',SCENES); pop('style',STYLES);
+  pop('weather',WEATHER); pop('lighting',LIGHTING);
+  pop('timeOfDay',TIMES); pop('cameraAngle',CAMERAS);
+  // Sync state on change
+  ['ethnicity','weather','lighting','timeOfDay'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',e=>{state[id]=e.target.value;updateStats()});
+  });
+  // Aspect ratio buttons
+  const arGrid=document.getElementById('arGrid');
+  ASPECT_RATIOS.forEach(ar=>{
+    const b=document.createElement('button');
+    b.className='ar-btn'+(ar.v==='16:9'?' active':'');
+    b.innerHTML=`<span style="font-weight:700">${ar.v}</span><span style="font-size:8px;opacity:.7">${ar.l}</span>`;
+    b.onclick=()=>{state.aspectRatio=ar.v;document.querySelectorAll('.ar-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');updatePreviewAspect();updateStats()};
+    arGrid.appendChild(b);
+  });
+  // Quick themes
+  const grid=document.getElementById('themesGrid');
+  THEMES.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='theme-btn'; b.id='theme-'+t.id;
+    b.innerHTML=`<div class="theme-icon">${t.icon}</div><div class="theme-name">${t.name}</div>`;
+    if(t.isRef) b.onclick=()=>document.getElementById('refImgInput').click();
+    else b.onclick=()=>applyTheme(t);
+    grid.appendChild(b);
+  });
+  renderPersonTabs();
+  renderPersonFields();
+  updateStats();
+}
+
+function pop(id, opts){
+  const el=document.getElementById(id);
+  el.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+}
+
+// ─── CUSTOM SELECT ─────────────────────────────────────────────
+function handleCustomSelect(stateKey, inputId, sel){
+  const val=sel.value;
+  const wrap=document.getElementById(inputId+'Wrap');
+  if(val==='Custom (自定義)'){
+    if(wrap) wrap.style.display='';
+    state[stateKey]='';
+  } else {
+    if(wrap) wrap.style.display='none';
+    state[stateKey]=val;
+    if(stateKey==='style') state.styleImage=null;
+    if(stateKey==='cameraAngle') state.cameraAngleImage=null;
+    updateStats();
+  }
+}
+
+// ─── FILE UPLOADS ──────────────────────────────────────────────
+function triggerUpload(id){ document.getElementById(id).click(); }
+
+function handleStyleImg(input){
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    state.styleImage=e.target.result;
+    document.getElementById('styleImgPreview').style.display='';
+    document.getElementById('styleImgThumb').src=e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+function handleCamImg(input){
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    state.cameraAngleImage=e.target.result;
+    document.getElementById('camImgPreview').style.display='';
+    document.getElementById('camImgThumb').src=e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+async function handleRefImg(input){
+  const file=input.files[0]; if(!file) return;
+  const apiKey=getKey();
+  if(!apiKey){ showError('請先輸入 API Key'); return; }
+  document.getElementById('refBtnText').textContent='🔄 分析中...';
+  const r=new FileReader();
+  r.onload=async e=>{
+    const b64=e.target.result.split(',')[1];
+    try{
+      const prompt=`Analyze this image and return ONLY a JSON object with: numPeople, ethnicity, scene, lighting, style, timeOfDay, weather, cameraAngle, people (array with identity, gender, age, action, facingAngle, clothing, bodyBuild, hairStyle, hairColor, assistiveDevice). No markdown, just JSON.`;
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt},{inlineData:{mimeType:'image/jpeg',data:b64}}]}]})
+      });
+      const data=await res.json();
+      const text=(data.candidates?.[0]?.content?.parts||[]).find(p=>p.text)?.text||'';
+      const json=JSON.parse(text.replace(/```json|```/g,'').trim());
+      if(json.people) state.people=json.people.map(p=>({...defPerson(),...p}));
+      if(json.scene) { state.scene=json.scene; document.getElementById('scene').value=json.scene; }
+      if(json.style) { state.style=json.style; document.getElementById('style').value=json.style; }
+      if(json.lighting) { state.lighting=json.lighting; document.getElementById('lighting').value=json.lighting; }
+      if(json.weather) { state.weather=json.weather; document.getElementById('weather').value=json.weather; }
+      if(json.timeOfDay) { state.timeOfDay=json.timeOfDay; document.getElementById('timeOfDay').value=json.timeOfDay; }
+      state.activeIdx=0;
+      renderPersonTabs(); renderPersonFields(); updateStats();
+      generate();
+    } catch(err){ showError('分析失敗：'+err.message); }
+    finally{ document.getElementById('refBtnText').textContent='📤 上傳參考圖片'; }
+  };
+  r.readAsDataURL(file);
+}
+
+// ─── THEMES ────────────────────────────────────────────────────
+function applyTheme(t){
+  const cfg=t.cfg;
+  state.people=cfg.people.map(p=>({...defPerson(),...p}));
+  state.scene=cfg.scene; state.lighting=cfg.lighting; state.style=cfg.style;
+  if(cfg.mainTitle){
+    document.getElementById('showMain').checked=true;
+    document.getElementById('mainTitleWrap').style.display='';
+    document.getElementById('mainTitle').value=cfg.mainTitle;
+  }
+  document.getElementById('scene').value=cfg.scene;
+  document.getElementById('style').value=cfg.style;
+  document.getElementById('lighting').value=cfg.lighting;
+  state.activeIdx=0;
+  renderPersonTabs(); renderPersonFields(); updateStats(); renderOverlays();
+  generate();
+}
+
+// ─── PERSON MANAGEMENT ─────────────────────────────────────────
+function renderPersonTabs(){
+  const row=document.getElementById('personTabsRow');
+  row.innerHTML=state.people.map((p,i)=>`
+    <div class="ptab ${i===state.activeIdx?'active':''}" onclick="selectPerson(${i})">
+      人物 ${i+1}
+      ${state.people.length>1?`<span class="del" onclick="event.stopPropagation();removePerson(${i})">✕</span>`:''}
+    </div>`).join('');
+  if(state.people.length<6) row.innerHTML+=`<button class="add-person" onclick="addPerson()" title="新增人物">＋</button>`;
+}
+
+function renderPersonFields(){
+  const p=state.people[state.activeIdx];
+  const fi=(label,id,opts,val,multi)=>{
+    const isCustom=!opts.filter(o=>o!=='Custom (自定義)').includes(val);
+    const selVal=opts.includes(val)?val:(opts.includes('Custom (自定義)')?'Custom (自定義)':opts[0]);
+    return `<div class="field${multi?' field-full':''}">
+      <label>${label}</label>
+      <select onchange="handlePersonCustom('${id}',this,${JSON.stringify(opts)})">
+        ${opts.map(o=>`<option value="${o}" ${o===selVal?'selected':''}>${o}</option>`).join('')}
+      </select>
+      ${isCustom?`<input type="text" placeholder="自定義..." value="${val}" oninput="updatePerson('${id}',this.value)" style="margin-top:6px">`:''}
+    </div>`;
+  };
+  document.getElementById('personFields').innerHTML=`
+    <div class="field-grid">
+      <div class="field">
+        <label>身份</label>
+        <select onchange="updatePerson('identity',this.value)">${IDENTITIES.map(o=>`<option value="${o}" ${o===p.identity?'selected':''}>${o}</option>`).join('')}</select>
+      </div>
+      <div class="field">
+        <label>性別</label>
+        <div class="gender-btns">
+          <div class="gbtn ${p.gender==='male'?'active':''}" onclick="updatePerson('gender','male');renderPersonFields()">♂ 男</div>
+          <div class="gbtn ${p.gender==='female'?'active':''}" onclick="updatePerson('gender','female');renderPersonFields()">♀ 女</div>
+        </div>
+      </div>
+      <div class="field field-full">
+        <label>年齡：<span id="ageVal">${p.age}</span></label>
+        <input type="range" min="1" max="100" value="${p.age}" oninput="updatePerson('age',parseInt(this.value));document.getElementById('ageVal').textContent=this.value">
+      </div>
+      ${fi('動作',    'action',   ACTIONS,  p.action)}
+      ${fi('服裝',    'clothing', CLOTHING, p.clothing)}
+      ${fi('髮色',    'hairColor',HAIR_COLORS,p.hairColor)}
+      ${fi('髮型',    'hairStyle',HAIR_STYLES,p.hairStyle)}
+      <div class="field">
+        <label>體型</label>
+        <select onchange="updatePerson('bodyBuild',this.value)">${BODY_BUILDS.map(o=>`<option value="${o}" ${o===p.bodyBuild?'selected':''}>${o}</option>`).join('')}</select>
+      </div>
+      <div class="field">
+        <label>面向</label>
+        <select onchange="updatePerson('facingAngle',this.value)">${FACING.map(o=>`<option value="${o}" ${o===p.facingAngle?'selected':''}>${o}</option>`).join('')}</select>
+      </div>
+      ${fi('輔具','assistiveDevice',ASSISTIVE,p.assistiveDevice,true)}
+      <div class="field field-full">
+        <label>客製化提示詞</label>
+        <textarea placeholder="額外描述..." oninput="updatePerson('customPrompt',this.value)">${p.customPrompt||''}</textarea>
+      </div>
+    </div>`;
+}
+
+function handlePersonCustom(key, sel, opts){
+  const val=sel.value;
+  if(val==='Custom (自定義)') updatePerson(key,'');
+  else updatePerson(key,val);
+  renderPersonFields();
+}
+
+function selectPerson(i){state.activeIdx=i;renderPersonTabs();renderPersonFields();}
+function addPerson(){state.people.push(defPerson());state.activeIdx=state.people.length-1;renderPersonTabs();renderPersonFields();}
+function removePerson(i){if(state.people.length<=1)return;state.people.splice(i,1);state.activeIdx=Math.max(0,state.activeIdx-1);renderPersonTabs();renderPersonFields();}
+function updatePerson(k,v){state.people[state.activeIdx][k]=v;}
+
+// ─── STATS ─────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('s-scene').textContent=state.scene.split('(')[0].trim().slice(0,8)||'—';
+  document.getElementById('s-people').textContent=state.people.length+' 人';
+  document.getElementById('s-style').textContent=state.style.split('(')[0].trim().slice(0,8)||'—';
+  document.getElementById('s-ratio').textContent=state.aspectRatio||'16:9';
+  document.getElementById('s-weather').textContent=state.weather.split('(')[0].trim()||'—';
+  document.getElementById('s-time').textContent=state.timeOfDay.split('(')[0].trim()||'—';
+}
+
+// ─── API KEY ───────────────────────────────────────────────────
+function getKey(){ return document.getElementById('apiKey').value.replace(/\s+/g,'').trim(); }
+function checkKey(){
+  const k=getKey(), el=document.getElementById('apiStatus');
+  if(k.length>10){el.textContent='✓ 已設定';el.className='api-status ok';}
+  else{el.textContent='未設定';el.className='api-status';}
+}
+
+// ─── BUILD PROMPT ──────────────────────────────────────────────
+function buildPrompt(){
+  const peopleDesc=state.people.map((p,i)=>{
+    const isRobot=p.identity.toLowerCase().includes('robot')||p.identity.includes('機器人');
+    const robotInfo=isRobot?'This character is a robot. Adjust facial features and body parts to be robotic.':'';
+    return `Person ${i+1} (${p.identity}): A ${p.gender}, ${p.age} years old, ${p.bodyBuild} build. Facing: ${p.facingAngle}. Hair: ${p.hairStyle}, ${p.hairColor}. Wearing: ${p.clothing}. Action: ${p.action}. Assistive Device: ${p.assistiveDevice}. ${robotInfo} ${p.customPrompt?'Additional: '+p.customPrompt:''}`;
+  }).join(' | ');
+
+  const styleSpec=state.style==='Photorealistic (照片寫實)'?'photorealistic, 8k resolution, detailed skin texture'
+    :state.style==='Cartoon (卡通風)'?'clean line-art, flat colors, cute friendly design'
+    :state.style==='可愛卡通機器人 (Cute Cartoon Robot)'?'chibi-style cute robot, rounded shapes, expressive digital eyes, friendly appearance'
+    :'professional artistic style';
+
+  const sceneSpec=state.scene.includes('Blue Screen')
+    ?'The background must be a solid uniform chroma-key blue (#0047BB) with no shadows or objects.'
+    :`Scene: ${state.scene}.`;
+
+  return `A highly professional image in ${state.style} style, featuring ${state.people.length} people in a ${state.scene} setting.
+Ethnicity: ${state.ethnicity}. ${sceneSpec}
+Time: ${state.timeOfDay}. Weather: ${state.weather}. Lighting: ${state.lighting}.
+Camera: ${state.cameraAngle}. Style specifics: ${styleSpec}.
+${state.styleImage?'Please follow the visual style of the attached style reference image.':''}
+${state.cameraAngleImage?'Please follow the camera angle shown in the attached camera reference image.':''}
+People: ${peopleDesc}
+High quality, sharp focus. All people interacting naturally.`;
+}
+
+// ─── GENERATE ──────────────────────────────────────────────────
+async function generate(){
+  const apiKey=getKey();
+  if(!apiKey||apiKey.length<10){showError('請先在右上角輸入 Gemini API Key');return;}
+  setGenerating(true); hideError();
+  const dbg=s=>{const b=document.getElementById('debugBox');b.style.display='';b.innerHTML+=s+'<br>';b.scrollTop=b.scrollHeight;};
+  document.getElementById('debugBox').innerHTML='';
+  dbg('🚀 開始生成...');
+
+  const MODELS=['gemini-3.1-flash-image-preview','gemini-2.5-flash-image','gemini-2.0-flash-exp'];
+  const prompt=buildPrompt();
+  let imageData=null, lastError='';
+
+  const parts=[{text:prompt}];
+  if(state.styleImage) parts.push({inlineData:{mimeType:'image/jpeg',data:state.styleImage.split(',')[1]}});
+  if(state.cameraAngleImage) parts.push({inlineData:{mimeType:'image/jpeg',data:state.cameraAngleImage.split(',')[1]}});
+
+  for(const model of MODELS){
+    try{
+      dbg('⟳ 嘗試 '+model);
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const body={
+        contents:[{parts}],
+        generationConfig:{responseModalities:['IMAGE','TEXT']}
+      };
+      // Add aspect ratio for models that support it
+      if(model==='gemini-3.1-flash-image-preview'||model==='gemini-2.5-flash-image'){
+        body.generationConfig.imageConfig={aspectRatio:state.aspectRatio||'16:9'};
+      }
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const data=await res.json();
+      if(!res.ok){lastError=(data.error?.message||'HTTP '+res.status)+' ['+model+']';dbg('❌ '+lastError);if(res.status===400||res.status===401||res.status===403)break;continue;}
+      for(const part of data.candidates?.[0]?.content?.parts||[]){
+        if(part.inlineData?.data){imageData=part.inlineData.data;break;}
+      }
+      if(imageData){dbg('✅ 成功！model: '+model);break;}
+      lastError='模型 '+model+' 未回傳圖片';dbg('⚠️ '+lastError);
+    }catch(e){lastError=e.message;dbg('🔴 '+e.message);}
+  }
+
+  if(imageData){
+    const src='data:image/png;base64,'+imageData;
+    const img=document.getElementById('previewImg');
+    img.src=src; img.classList.add('visible');
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('dlBtn').classList.add('visible');
+    state.generatedImage=src;
+    renderOverlays();
+  } else {
+    let msg=lastError;
+    if(msg.includes('API_KEY_INVALID')||msg.includes('invalid')) msg='❌ API Key 無效';
+    else if(msg.includes('403')||msg.includes('PERMISSION')) msg='❌ 此 Key 沒有圖片生成權限';
+    else if(msg.includes('429')||msg.includes('QUOTA')) msg='❌ 配額已用完，請明天再試或開通付費';
+    else msg='❌ '+msg;
+    showError(msg);
+  }
+  setGenerating(false);
+}
+
+function setGenerating(v){
+  state.generating=v;
+  document.getElementById('genOverlay').classList.toggle('visible',v);
+  const btn=document.getElementById('genBtn');
+  btn.disabled=v;
+  document.getElementById('genIcon').innerHTML=v?'<span class="spin">◌</span>':'✦';
+  document.getElementById('genText').textContent=v?' 生成中...',' 生成圖片';
+  document.querySelectorAll('.theme-btn').forEach(b=>b.style.opacity=v?'0.5':'1');
+}
+
+function showError(msg){const el=document.getElementById('errorMsg');el.textContent=msg;el.classList.add('visible');}
+function hideError(){document.getElementById('errorMsg').classList.remove('visible');}
+
+// ─── ASPECT RATIO PREVIEW ──────────────────────────────────────
+function updatePreviewAspect(){
+  const ar=state.aspectRatio||'16:9';
+  const frame=document.getElementById('previewFrame');
+  const portrait=['9:16','2:3','3:4','1:2'].includes(ar);
+  frame.style.aspectRatio=ar.replace(':','/');
+  frame.style.width=portrait?'auto':'100%';
+  frame.style.maxHeight='70vh';
+  frame.style.maxWidth=portrait?'400px':'100%';
+}
+
+// ─── TEXT OVERLAYS ─────────────────────────────────────────────
+function toggleTextInput(wrapId, cb){ document.getElementById(wrapId).style.display=cb.checked?'':'none'; }
+
+function renderOverlays(){
+  const c=document.getElementById('overlayContainer');
+  c.innerHTML='';
+  const add=(text,pos,cls,key)=>{
+    if(!text) return;
+    const el=document.createElement('div');
+    el.className='text-overlay';
+    el.style.cssText=`left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);pointer-events:auto;`;
+    el.innerHTML=`<div class="overlay-pill ${cls}">${text.replace(/\n/g,'<br>')}</div>`;
+    let drag=false,ox,oy;
+    el.addEventListener('mousedown',e=>{drag=true;const r=c.getBoundingClientRect();ox=e.clientX-r.left-(pos.x/100*r.width);oy=e.clientY-r.top-(pos.y/100*r.height);e.preventDefault();});
+    document.addEventListener('mousemove',e=>{if(!drag)return;const r=c.getBoundingClientRect();const x=Math.max(5,Math.min(95,(e.clientX-r.left-ox)/r.width*100));const y=Math.max(5,Math.min(95,(e.clientY-r.top-oy)/r.height*100));state.overlayPos[key]={x,y};el.style.left=x+'%';el.style.top=y+'%';});
+    document.addEventListener('mouseup',()=>{drag=false;});
+    c.appendChild(el);
+  };
+  if(document.getElementById('showMain').checked) add(document.getElementById('mainTitle').value,state.overlayPos.main,'','main');
+  if(document.getElementById('showSub').checked) add(document.getElementById('subTitle').value,state.overlayPos.sub,'subtitle','sub');
+  if(document.getElementById('showBody').checked) add(document.getElementById('bodyText').value,state.overlayPos.body,'body','body');
+}
+
+// ─── DOWNLOAD ──────────────────────────────────────────────────
+function downloadImg(){
+  if(!state.generatedImage) return;
+  const a=document.createElement('a');
+  a.download='ai-scene-'+Date.now()+'.png';
+  a.href=state.generatedImage;
+  a.click();
+}
+
+// ─── BOOT ──────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
