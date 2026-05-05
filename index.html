@@ -47,7 +47,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.9);backdrop-
 select,input[type=text],textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--text);font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2371717a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-color:rgba(255,255,255,0.04);padding-right:28px;cursor:pointer}
 select:focus,input[type=text]:focus,textarea:focus{border-color:var(--accent-border);background:var(--accent-dim)}
-select option{background:#1c1c1f;color:var(--text)}
+select option{background:#1c1c1f;color:var(--text)} select{color:var(--text) !important}
 textarea{resize:none;min-height:60px}
 input[type=range]{padding:0;height:4px;border:none;background:var(--s2);border-radius:2px;cursor:pointer;accent-color:var(--accent)}
 /* ASPECT RATIO */
@@ -288,7 +288,7 @@ const LIGHTING = ['Soft Studio','Natural Sunlight','Golden Hour','Moody Low-key'
 const WEATHER = ['Sunny (晴天)','Cloudy (多雲)','Rainy (下雨)','Snowy (下雪)','Foggy (大霧)','Stormy (暴風雨)'];
 const CLOTHING = ['Casual Wear (休閒服)','Doctor (醫生)','Nurse (護士)','Patient (病人)','Home Wear (家居服)','Suit (西裝)','Formal Dress (禮服)','Student Uniform (學生制服)','Dress (洋裝)','Sportswear (運動服)','Professional Attire (職業裝)','Swimwear (泳裝)','Wetsuit (潛水服)','Life Vest (救生背心)','Custom (自定義)'];
 const STYLES = ['Photorealistic (照片寫實)','Cinematic (電影感)','3D PAPER CRAFT (紙模型)','Paper Cut (紙雕風)','Clay Style (紙黏土風)','Origami (摺紙風)','Felt Craft (羊毛氈)','Wood Carving (木雕)','Toy style (玩具風)','Clay Toy (黏土玩具風)','Inflatable (泡泡膠風)','Jelly (果凍風)','Chrome (金屬鉻風)','Glass (玻璃風)','Steampunk (蒸氣龐克)','Low Poly (低多邊形)','Isometric (等角視角)','Claymation','Illustration (數位插畫)','Anime / Manga (動漫)','Oil Painting (油畫風)','Abstract (抽象藝術)','Flat Design (扁平設計)','3D Render (3D渲染)','Cyberpunk (賽博龐克)','Surrealism (超現實)','Cartoon (卡通風)','仿真機器人 (Realistic Robot)','可愛卡通機器人 (Cute Cartoon Robot)','Watercolor (水彩畫)','Ink Wash (水墨畫)','Pencil Sketch (鉛筆素描)','Sticker (貼紙風)','Comic Book (美式漫畫)','Retro Vintage (復古懷舊)','Neon Glow (霓虹發光)','Pixel Art (像素藝術)','Pastel (粉彩風)','Minimalist (極簡風)','Pop Art (普普藝術)','Ukiyo-e (浮世繪)','Fantasy (奇幻插畫)','Sci-Fi (科幻)','Children Book (兒童繪本)','Film Noir (黑色電影)','HDR Photo (HDR 攝影)','Custom (自定義)'];
-const CAMERAS = ['Wide Shot (廣角)','Medium Shot (中景)','Close-up (特寫)','Extreme Close-up (極特寫)','Zoomed In (放大)','Zoomed Out (縮小)','Low Angle (低角度)','High Angle (高角度)',"Bird's Eye View (俯瞰)",'Custom (自定義)'];
+const CAMERAS = ['Wide Shot (廣角)','Medium Shot (中景)','Close-up (特寫)','Extreme Close-up (極特寫)','Zoomed In (放大)','Zoomed Out (縮小)','Low Angle (低角度)','High Angle (高角度)','Bird Eye View (俯瞰)','Custom (自定義)'];
 const FACING = ['正面 (Front)','背面 (Back)','右側 (Right Side)','左側 (Left Side)'];
 const TIMES = ['Early Morning (清晨)','Noon (中午)','Daytime (白天)','Evening (晚上)','Late Night (深夜)'];
 const ASPECT_RATIOS = [
@@ -641,7 +641,7 @@ function setGenerating(v){
   const btn=document.getElementById('genBtn');
   btn.disabled=v;
   document.getElementById('genIcon').innerHTML=v?'<span class="spin">◌</span>':'✦';
-  document.getElementById('genText').textContent=v?' 生成中...',' 生成圖片';
+  document.getElementById('genText').textContent=v?' 生成中...'  :' 生成圖片';
   document.querySelectorAll('.theme-btn').forEach(b=>b.style.opacity=v?'0.5':'1');
 }
 
@@ -692,7 +692,16 @@ function downloadImg(){
 }
 
 // ─── BOOT ──────────────────────────────────────────────────────
-init();
+window.onerror=function(msg,src,line){
+  const e=document.getElementById('errorMsg');
+  if(e){e.textContent='JS Error: '+msg+' (line '+line+')';e.classList.add('visible');}
+  return false;
+};
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>
