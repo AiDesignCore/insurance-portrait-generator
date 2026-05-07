@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyCCu0p8vhP5qbF0iFDlax2KVdb7DxRh5LM" });
+const ai = new GoogleGenAI({ apiKey: "" });
 
 export interface PersonConfig {
   identity: string;
